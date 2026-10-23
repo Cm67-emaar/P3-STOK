@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>P3 Depo Stok & Sayım Terminali</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 12px; background: #0f172a; color: #f8fafc; text-align: center; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #334155; margin-bottom: 16px; }
+    .brand { font-size: 18px; font-weight: 800; color: #38bdf8; }
+    button { background: #38bdf8; color: #0f172a; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    button.danger { background: #ef4444; color: #fff; }
+    button.success { background: #22c55e; color: #fff; }
+    button.secondary { background: #334155; color: #fff; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 16px; margin-bottom: 8px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 14px; text-align: left; }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 250px; }
+    .history-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 14px; }
+    .badge { background: #0284c7; color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 12px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Boyner P3 Depo</div>
+    <div id="authActions">
+      <button onclick="showAuthModal()" id="loginBtn">Yetkili Girişi</button>
+      <button onclick="logout()" id="logoutBtn" class="danger hidden">Çıkış</button>
+    </div>
+  </header>
+
+  <!-- 1. PERSONEL ARAMA MODU -->
+  <div id="searchView">
+    <div class="card">
+      <h3 style="margin-top:0;">Ürün Nerede?</h3>
+      <input type="text" id="searchInput" placeholder="Barkod yazın veya okutun..." oninput="searchProduct()">
+      <div id="searchResult" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- 2. YETKİLİ SAYIM VE RAF PANELİ -->
+  <div id="adminView" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0;">Raf Yönetimi & Sayım</h3>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="newRafInput" placeholder="Yeni Raf (Örn: P3-05)">
+        <button onclick="addNewRaf()" class="success">Ekle</button>
+      </div>
+      <div id="rafList" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- 3. KESİNTİSİZ SAYIM EKRANI (KAMERA) -->
+  <div id="scannerView" class="hidden">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><strong>Aktif Raf:</strong> <span id="currentScanningRaf" style="color:#38bdf8; font-size:18px;">---</span></div>
+        <button onclick="stopScanning()" class="secondary">Vazgeç</button>
+      </div>
+      <div id="reader" style="margin-top:12px;"></div>
+      <div style="margin-top:12px; display:flex; justify-content:space-between; font-size:16px;">
+        <div>Okutulan Toplam: <strong id="scanCount" style="color:#22c55e; font-size:20px;">0</strong></div>
+        <button onclick="finishScanning()" class="success">Sayımı Bitir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SAYIM ÖZETİ & ONAY -->
+  <div id="summaryView" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0;">Sayım Özeti</h3>
+      <div id="summaryContent"></div>
+      <div style="margin-top:16px; display:flex; gap:8px;">
+        <button onclick="confirmStockUpdate()" class="success" style="flex:1;">Kaydet & Rafı Güncelle</button>
+        <button onclick="cancelSummary()" class="danger" style="flex:1;">İptal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GİRİŞ MODAL -->
+  <div id="authModal" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center;">
+    <div class="card" style="width:85%; max-width:340px;">
+      <h3 style="margin-top:0;">Yetkili Girişi</h3>
+      <input type="text" id="adminUser" placeholder="Kullanıcı Adı (admin)">
+      <input type="password" id="adminPass" placeholder="Şifre (1234)">
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button onclick="login()" class="success" style="flex:1;">Giriş</button>
+        <button onclick="hideAuthModal()" class="secondary" style="flex:1;">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Veritabanı (Tarayıcı Yerel Belleği)
+    let warehouseData = JSON.parse(localStorage.getItem("boyner_p3_data")) || {
+      "P3-01": { "8682272769469": 2 },
+      "P3-02": {}
+    };
+
+    let activeRaf = "";
+    let tempScanBatch = {};
+    let html5QrCode = null;
+    let lastScanTime = 0;
+    let lastCode = "";
+
+    // Bip Sesi (Web Audio)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 1400;
+      gain.gain.value = 0.3;
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function saveDB() {
+      localStorage.setItem("boyner_p3_data", JSON.stringify(warehouseData));
+    }
+
+    // Arama
+    function searchProduct() {
+      const q = document.getElementById("searchInput").value.trim();
+      const res = document.getElementById("searchResult");
+      if (!q) { res.innerHTML = ""; return; }
+      
+      let found = [];
+      for (let raf in warehouseData) {
+        if (warehouseData[raf][q]) {
+          found.push({ raf: raf, count: warehouseData[raf][q] });
+        }
+      }
+
+      if (found.length === 0) {
+        res.innerHTML = `<div style="color:#ef4444;">Ürün P3 deposunda bulunamadı.</div>`;
+      } else {
+        let html = "";
+        found.forEach(f => {
+          html += `<div class="history-row"><span>Raf: <strong>${f.raf}</strong></span><span class="badge">${f.count} Adet</span></div>`;
+        });
+        res.innerHTML = html;
+      }
+    }
+
+    // Yetkili Girişi
+    function showAuthModal() { document.getElementById("authModal").classList.remove("hidden"); }
+    function hideAuthModal() { document.getElementById("authModal").classList.add("hidden"); }
+    function login() {
+      const u = document.getElementById("adminUser").value.trim();
+      const p = document.getElementById("adminPass").value.trim();
+      if (u === "admin" && p === "1234") {
+        hideAuthModal();
+        document.getElementById("loginBtn").classList.add("hidden");
+        document.getElementById("logoutBtn").classList.remove("hidden");
+        document.getElementById("adminView").classList.remove("hidden");
+        renderRafList();
+      } else {
+        alert("Hatalı kullanıcı adı veya şifre!");
+      }
+    }
+    function logout() {
+      document.getElementById("loginBtn").classList.remove("hidden");
+      document.getElementById("logoutBtn").classList.add("hidden");
+      document.getElementById("adminView").classList.add("hidden");
+    }
+
+    // Raf İşlemleri
+    function addNewRaf() {
+      const name = document.getElementById("newRafInput").value.trim().toUpperCase();
+      if (!name) return;
+      if (!warehouseData[name]) warehouseData[name] = {};
+      document.getElementById("newRafInput").value = "";
+      saveDB();
+      renderRafList();
+    }
+
+    function deleteRaf(raf) {
+      if (confirm(`${raf} rafını ve içindeki tüm sayımı silmek istediğinize emin misiniz?`)) {
+        delete warehouseData[raf];
+        saveDB();
+        renderRafList();
+      }
+    }
+
+    function renderRafList() {
+      const list = document.getElementById("rafList");
+      let html = "";
+      for (let raf in warehouseData) {
+        let count = Object.values(warehouseData[raf]).reduce((a, b) => a + b, 0);
+        html += `
+          <div class="history-row" style="align-items:center;">
+            <div><strong>${raf}</strong> <span style="color:#94a3b8; font-size:12px;">(${count} Adet)</span></div>
+            <div style="display:flex; gap:6px;">
+              <button onclick="startScanning('${raf}')" class="success" style="padding:6px 10px;">Sayım Yap</button>
+              <button onclick="deleteRaf('${raf}')" class="danger" style="padding:6px 10px;">Sil</button>
+            </div>
+          </div>`;
+      }
+      list.innerHTML = html;
+    }
+
+    // Sayım & Kamera Döngüsü (Vizör Kapanmaz)
+    function startScanning(raf) {
+      activeRaf = raf;
+      tempScanBatch = {};
+      document.getElementById("currentScanningRaf").innerText = raf;
+      document.getElementById("scanCount").innerText = "0";
+      document.getElementById("adminView").classList.add("hidden");
+      document.getElementById("searchView").classList.add("hidden");
+      document.getElementById("scannerView").classList.remove("hidden");
+
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 20, qrbox: { width: 250, height: 180 } },
+        (decodedText) => {
+          const now = Date.now();
+          if (decodedText === lastCode && (now - lastScanTime) < 1200) return;
+          lastCode = decodedText;
+          lastScanTime = now;
+          playBeep();
+
+          tempScanBatch[decodedText] = (tempScanBatch[decodedText] || 0) + 1;
+          let total = Object.values(tempScanBatch).reduce((a, b) => a + b, 0);
+          document.getElementById("scanCount").innerText = total;
+        }
+      );
+    }
+
+    function stopScanning() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById("scannerView").classList.add("hidden");
+          document.getElementById("adminView").classList.remove("hidden");
+          document.getElementById("searchView").classList.remove("hidden");
+        });
+      }
+    }
+
+    function finishScanning() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById("scannerView").classList.add("hidden");
+          showSummary();
+        });
+      }
+    }
+
+    function showSummary() {
+      const content = document.getElementById("summaryContent");
+      let total = 0;
+      let html = `<p><strong>Raf:</strong> ${activeRaf}</p><hr style="border-color:#334155;">`;
+      for (let code in tempScanBatch) {
+        total += tempScanBatch[code];
+        html += `<div class="history-row"><span>${code}</span><span class="badge">${tempScanBatch[code]} Adet</span></div>`;
+      }
+      html += `<div style="margin-top:10px; font-weight:bold; color:#22c55e;">Toplam Okutulan: ${total} Adet</div>`;
+      content.innerHTML = html;
+      document.getElementById("summaryView").classList.remove("hidden");
+    }
+
+    function confirmStockUpdate() {
+      warehouseData[activeRaf] = tempScanBatch;
+      saveDB();
+      document.getElementById("summaryView").classList.add("hidden");
+      document.getElementById("adminView").classList.remove("hidden");
+      document.getElementById("searchView").classList.remove("hidden");
+      renderRafList();
+      alert(`${activeRaf} rafı başarıyla güncellendi!`);
+    }
+
+    function cancelSummary() {
+      document.getElementById("summaryView").classList.add("hidden");
+      document.getElementById("adminView").classList.remove("hidden");
+      document.getElementById("searchView").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
