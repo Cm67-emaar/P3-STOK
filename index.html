@@ -74,4 +74,349 @@
       <div class="card-title">Yeni Raf Ekle</div>
       <div style="display:flex; gap:8px;">
         <input type="text" id="newRafInp" placeholder="Raf Adı (Örn: P3-05)" style="margin-bottom:0;">
-        <button onclick="addManualRaf()" class="dark" style="white-space:nowrap;">+ Ekle</
+        <button onclick="addManualRaf()" class="dark" style="white-space:nowrap;">+ Ekle</button>
+      </div>
+      <div style="margin-top:10px;">
+        <button onclick="startAddRafWithQr()" class="outline" style="width:100%;">📷 QR Kod Okutarak Raf Ekle</button>
+      </div>
+      <div id="qrAddReaderSec" style="display:none; margin-top:10px;">
+        <div id="qrReaderBox"></div>
+        <button onclick="stopAddRafWithQr()" class="secondary" style="width:100%; margin-top:8px;">Kamerayı Kapat</button>
+      </div>
+    </div>
+
+    <!-- RAFLAR LİSTESİ -->
+    <div class="card">
+      <div class="card-title">Raflar (Detay için rafa dokunun)</div>
+      <div id="rafListContainer"></div>
+    </div>
+  </div>
+
+  <!-- 3. KESİNTİSİZ SAYIM KAMERASI -->
+  <div id="scanSec" class="card" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div>Raf: <strong id="curRafText" style="color:#dc2626; font-size:22px;"></strong></div>
+      <button onclick="abortScan()" class="secondary">İptal</button>
+    </div>
+    <div id="reader"></div>
+    <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+      <div>Eklenen: <strong id="scanCounter" style="color:#16a34a; font-size:26px;">0</strong> Adet</div>
+      <button onclick="stopAndSave()" class="success" style="padding:14px 20px;">Kaydet & Ekle</button>
+    </div>
+  </div>
+
+  <!-- QR GÖSTERİM MODALI -->
+  <div id="qrModal" class="modal-overlay" style="display:none;">
+    <div class="card" style="width:100%; max-width:320px; text-align:center;">
+      <h3 id="qrTitle" style="margin-top:0;">Raf QR</h3>
+      <div id="qrImgBox" style="margin:16px 0;"></div>
+      <button onclick="closeQrModal()" class="secondary" style="width:100%;">Kapat</button>
+    </div>
+  </div>
+
+  <!-- GİRİŞ MODAL -->
+  <div id="authModal" class="modal-overlay" style="display:none;">
+    <div class="card" style="width:100%; max-width:320px;">
+      <div class="card-title">Yetkili Girişi</div>
+      <input type="text" id="authUser" placeholder="Kullanıcı Adı">
+      <input type="password" id="authPass" placeholder="Şifre">
+      <div style="display:flex; gap:8px;">
+        <button onclick="submitLogin()" style="flex:1;">Giriş</button>
+        <button onclick="closeLoginModal()" class="secondary" style="flex:1;">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HER SAYFADA SABİT YARATICILAR FOOTER -->
+  <footer>
+    <div class="creators-title">Yaratıcılar & Fikir Sahipleri</div>
+    <div class="creators-names">
+      Cengizhan Kadiroğlu &bull; Melih Kerim
+    </div>
+  </footer>
+
+  <script>
+    // Kullanıcı Tanımları
+    const VALID_USERS = {
+      "cengizhankadiroglu": { pass: "182775", name: "Cengizhan Kadiroğlu" },
+      "melihkerim": { pass: "203840", name: "Melih Kerim" }
+    };
+
+    var db = JSON.parse(localStorage.getItem("p3_depo_v2") || '{"P3-01": {"8684497451938": 3}}');
+    var activeRaf = "";
+    var currentBatch = {};
+    var scanner = null;
+    var qrAddScanner = null;
+    var lastCode = "";
+    var lastTime = 0;
+    var openRafDetails = {};
+
+    function saveDB() {
+      localStorage.setItem("p3_depo_v2", JSON.stringify(db));
+    }
+
+    function bip() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 1400;
+        gain.gain.value = 0.3;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.09);
+      } catch(e){}
+    }
+
+    // Ürün Arama
+    function doSearch() {
+      var val = document.getElementById("searchInp").value.trim();
+      var res = document.getElementById("searchRes");
+      if(!val) { res.innerHTML = ""; return; }
+      
+      var found = [];
+      for(var r in db) {
+        if(db[r] && db[r][val]) found.push({ raf: r, qty: db[r][val] });
+      }
+
+      if(found.length === 0) {
+        res.innerHTML = "<div style='color:#dc2626; padding:10px 0; font-weight:600;'>Bu barkod hiçbir rafta bulunamadı.</div>";
+      } else {
+        var h = "";
+        for(var i=0; i<found.length; i++) {
+          h += "<div class='item-row'><span>Raf: <strong>" + found[i].raf + "</strong></span><span class='badge'>" + found[i].qty + " Adet</span></div>";
+        }
+        res.innerHTML = h;
+      }
+    }
+
+    // Yetkili Girişi
+    function openLoginModal() { document.getElementById("authModal").style.display = "flex"; }
+    function closeLoginModal() { document.getElementById("authModal").style.display = "none"; }
+    
+    function submitLogin() {
+      var u = document.getElementById("authUser").value.trim().toLowerCase();
+      var p = document.getElementById("authPass").value.trim();
+      
+      if(VALID_USERS[u] && VALID_USERS[u].pass === p) {
+        closeLoginModal();
+        document.getElementById("loginBtn").style.display = "none";
+        document.getElementById("userBadge").style.display = "inline-flex";
+        document.getElementById("activeUserName").innerText = VALID_USERS[u].name;
+        document.getElementById("adminSec").style.display = "block";
+        renderRaflar();
+      } else {
+        alert("Hatalı kullanıcı adı veya şifre!");
+      }
+    }
+
+    function doLogout() {
+      document.getElementById("loginBtn").style.display = "inline-flex";
+      document.getElementById("userBadge").style.display = "none";
+      document.getElementById("adminSec").style.display = "none";
+    }
+
+    // Raf Ekleme (Elle & QR)
+    function addManualRaf() {
+      var name = document.getElementById("newRafInp").value.trim().toUpperCase();
+      if(!name) return;
+      if(!db[name]) db[name] = {};
+      document.getElementById("newRafInp").value = "";
+      saveDB();
+      renderRaflar();
+    }
+
+    function startAddRafWithQr() {
+      document.getElementById("qrAddReaderSec").style.display = "block";
+      qrAddScanner = new Html5Qrcode("qrReaderBox");
+      qrAddScanner.start(
+        { facingMode: "environment" },
+        { fps: 20, qrbox: { width: 200, height: 200 } },
+        function(code) {
+          bip();
+          var rafName = code.trim().toUpperCase();
+          if(!db[rafName]) db[rafName] = {};
+          saveDB();
+          stopAddRafWithQr();
+          renderRaflar();
+          alert("'" + rafName + "' rafı başarıyla eklendi!");
+        }
+      ).catch(function(err){
+        alert("Kamera açılamadı: " + err);
+        stopAddRafWithQr();
+      });
+    }
+
+    function stopAddRafWithQr() {
+      if(qrAddScanner) {
+        qrAddScanner.stop().then(function(){
+          document.getElementById("qrAddReaderSec").style.display = "none";
+          qrAddScanner = null;
+        }).catch(function(){
+          document.getElementById("qrAddReaderSec").style.display = "none";
+          qrAddScanner = null;
+        });
+      } else {
+        document.getElementById("qrAddReaderSec").style.display = "none";
+      }
+    }
+
+    // Akordeon Detay
+    function toggleRafDetails(r) {
+      openRafDetails[r] = !openRafDetails[r];
+      renderRaflar();
+    }
+
+    // Raf İçi Ürün Yönetimi
+    function updateItemCount(raf, code, delta) {
+      if(!db[raf] || !db[raf][code]) return;
+      db[raf][code] += delta;
+      if(db[raf][code] <= 0) delete db[raf][code];
+      saveDB();
+      renderRaflar();
+    }
+
+    function deleteItemDirectly(raf, code) {
+      if(confirm(code + " barkodlu ürünü bu raftan silmek istediğinize emin misiniz?")) {
+        delete db[raf][code];
+        saveDB();
+        renderRaflar();
+      }
+    }
+
+    function deleteFullRaf(r) {
+      if(confirm(r + " rafını ve içindeki TÜM ürünleri kalıcı olarak silmek istiyor musunuz?")) {
+        delete db[r];
+        saveDB();
+        renderRaflar();
+      }
+    }
+
+    function showQrModal(r) {
+      document.getElementById("qrTitle").innerText = r + " QR Kodu";
+      var url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(r);
+      document.getElementById("qrImgBox").innerHTML = "<img src='" + url + "' style='max-width:200px; height:auto; display:inline-block;' />";
+      document.getElementById("qrModal").style.display = "flex";
+    }
+
+    function closeQrModal() { document.getElementById("qrModal").style.display = "none"; }
+
+    // Rafları Ekrana Basma
+    function renderRaflar() {
+      var cont = document.getElementById("rafListContainer");
+      var html = "";
+      
+      for(var r in db) {
+        var totalQty = 0;
+        var itemsHtml = "";
+        
+        for(var code in db[r]) {
+          var qty = db[r][code];
+          totalQty += qty;
+          itemsHtml += 
+            "<div class='item-row'>" +
+              "<div><strong>" + code + "</strong></div>" +
+              "<div style='display:flex; align-items:center; gap:8px;'>" +
+                "<button onclick='updateItemCount(\"" + r + "\", \"" + code + "\", -1)' class='secondary' style='padding:4px 10px; font-size:16px;'>-</button>" +
+                "<span class='badge'>" + qty + " Adet</span>" +
+                "<button onclick='updateItemCount(\"" + r + "\", \"" + code + "\", 1)' class='secondary' style='padding:4px 10px; font-size:16px;'>+</button>" +
+                "<button onclick='deleteItemDirectly(\"" + r + "\", \"" + code + "\")' class='outline' style='padding:4px 8px; font-size:12px; margin-left:4px;'>🗑️</button>" +
+              "</div>" +
+            "</div>";
+        }
+
+        if(!itemsHtml) {
+          itemsHtml = "<div style='color:#94a3b8; font-size:14px; padding:6px 0;'>Bu rafta henüz ürün yok.</div>";
+        }
+
+        var isOpen = openRafDetails[r];
+
+        html += 
+          "<div class='raf-card'>" +
+            "<div class='raf-header'>" +
+              "<div onclick='toggleRafDetails(\"" + r + "\")' style='flex:1; text-align:left;'>" +
+                "<div style='font-size:18px; font-weight:800; color:#1e293b;'>" + r + " " + (isOpen ? "▲" : "▼") + "</div>" +
+                "<div style='color:#dc2626; font-size:13px; font-weight:700;'>" + totalQty + " Adet Toplam Ürün</div>" +
+              "</div>" +
+              "<div style='display:flex; gap:6px;'>" +
+                "<button onclick='startScan(\"" + r + "\")' class='success' style='padding:8px 12px; font-size:13px;'>+ Sayım Ekle</button>" +
+                "<button onclick='showQrModal(\"" + r + "\")' class='outline' style='padding:8px 10px; font-size:13px;'>QR</button>" +
+                "<button onclick='deleteFullRaf(\"" + r + "\")' class='secondary' style='padding:8px 8px; font-size:12px;'>🗑️</button>" +
+              "</div>" +
+            "</div>" +
+            (isOpen ? "<div class='raf-items-box'>" + itemsHtml + "</div>" : "") +
+          "</div>";
+      }
+      cont.innerHTML = html;
+    }
+
+    // Kesintisiz Sayım Motoru (Üzerine Ekleme Modu)
+    function startScan(r) {
+      activeRaf = r;
+      currentBatch = {};
+      lastCode = "";
+      document.getElementById("curRafText").innerText = r;
+      document.getElementById("scanCounter").innerText = "0";
+      document.getElementById("searchSec").style.display = "none";
+      document.getElementById("adminSec").style.display = "none";
+      document.getElementById("scanSec").style.display = "block";
+
+      scanner = new Html5Qrcode("reader");
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 22, qrbox: { width: 260, height: 160 } },
+        function(code) {
+          var now = Date.now();
+          if(code === lastCode && (now - lastTime) < 1200) return;
+          lastCode = code;
+          lastTime = now;
+          bip();
+          
+          currentBatch[code] = (currentBatch[code] || 0) + 1;
+          var totalBatch = 0;
+          for(var x in currentBatch) { totalBatch += currentBatch[x]; }
+          document.getElementById("scanCounter").innerText = totalBatch;
+        }
+      ).catch(function(err){
+        alert("Kamera açılamadı: " + err);
+        abortScan();
+      });
+    }
+
+    function abortScan() {
+      if(scanner) {
+        scanner.stop().then(function(){ resetViews(); }).catch(function(){ resetViews(); });
+      } else {
+        resetViews();
+      }
+    }
+
+    function stopAndSave() {
+      if(scanner) {
+        scanner.stop().then(function(){ applyBatch(); }).catch(function(){ applyBatch(); });
+      } else {
+        applyBatch();
+      }
+    }
+
+    function applyBatch() {
+      if(!db[activeRaf]) db[activeRaf] = {};
+      for(var code in currentBatch) {
+        db[activeRaf][code] = (db[activeRaf][code] || 0) + currentBatch[code];
+      }
+      saveDB();
+      resetViews();
+      openRafDetails[activeRaf] = true;
+      renderRaflar();
+      alert(activeRaf + " rafına sayılan ürünler eklendi!");
+    }
+
+    function resetViews() {
+      document.getElementById("scanSec").style.display = "none";
+      document.getElementById("searchSec").style.display = "block";
+      document.getElementById("adminSec").style.display = "block";
+    }
+  </script>
+</body>
+</html>
