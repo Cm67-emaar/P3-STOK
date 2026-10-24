@@ -10,7 +10,7 @@
   <!-- HTML5 QR / Barkod Okuyucu -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 
-  <!-- Firebase v8 (Klasik ve Hızlı Web SDK) -->
+  <!-- Firebase v8 SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -30,56 +30,87 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
     
-    header { background-color: var(--primary); color: #fff; padding: 16px; text-align: center; box-shadow: 0 2px 8px rgba(217, 4, 41, 0.25); position: relative; }
-    header h1 { font-size: 1.25rem; font-weight: 700; }
-    header p { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
-    .auth-status { position: absolute; right: 16px; top: 18px; font-size: 0.85rem; }
+    /* Header & Mobil Uyumlu Düzen */
+    header {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 14px 16px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(217, 4, 41, 0.25);
+      position: relative;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 700; }
+    header p { font-size: 0.8rem; opacity: 0.9; margin-top: 2px; }
+    
+    .header-info-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      background: rgba(255,255,255,0.2);
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #28a745; }
+    .user-pill {
+      font-size: 0.75rem;
+      background: #fff;
+      color: var(--primary);
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
 
-    .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; margin-top: 6px; }
-    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #28a745; }
-
-    .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 16px; flex: 1; }
+    .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 14px; flex: 1; }
 
     /* Sekmeler */
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-    .nav-tab { flex: 1; padding: 12px; text-align: center; background: #fff; border: 2px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .nav-tab { flex: 1; padding: 12px; text-align: center; background: #fff; border: 2px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; font-size: 0.9rem; }
     .nav-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-    .card { background: var(--card-bg); border-radius: 10px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
-    .card-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .card { background: var(--card-bg); border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
+    .card-title { font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
 
-    input, select, textarea { width: 100%; padding: 12px; border: 1.5px solid #ced4da; border-radius: 8px; font-size: 1rem; margin-bottom: 10px; }
+    input, select, textarea { width: 100%; padding: 11px; border: 1.5px solid #ced4da; border-radius: 8px; font-size: 0.95rem; margin-bottom: 8px; }
     input:focus, textarea:focus { border-color: var(--primary); outline: none; }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; font-size: 0.95rem; text-decoration: none; transition: background 0.2s; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 14px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; font-size: 0.9rem; text-decoration: none; transition: background 0.2s; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-dark); }
     .btn-success { background: var(--success); color: #fff; }
     .btn-info { background: var(--info); color: #fff; }
     .btn-secondary { background: #6c757d; color: #fff; }
-    .btn-sm { padding: 6px 10px; font-size: 0.8rem; width: auto; }
+    .btn-sm { padding: 5px 8px; font-size: 0.78rem; width: auto; }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 
     /* Kamera Alanı */
-    #scanner-container { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 12px; display: none; background: #000; }
+    #scanner-container, #rack-scanner-container { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; background: #000; }
 
     /* Raf Listesi & Akordiyon */
     .rack-item { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; background: #fff; }
-    .rack-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; cursor: pointer; }
+    .rack-header { padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; cursor: pointer; }
     .rack-header:hover { background: #f1f3f5; }
-    .rack-name { font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
-    .rack-badge { background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
-    .rack-actions { display: flex; gap: 6px; align-items: center; }
+    .rack-name { font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; font-size: 0.95rem; }
+    .rack-badge { background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; }
+    .rack-actions { display: flex; gap: 4px; align-items: center; }
     
-    .rack-content { display: none; padding: 12px; border-top: 1px solid var(--border); background: #fff; }
+    .rack-content { display: none; padding: 10px 12px; border-top: 1px solid var(--border); background: #fff; }
     .rack-content.show { display: block; }
     
-    .stock-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+    .stock-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); gap: 6px; }
     .stock-row:last-child { border-bottom: none; }
-    .stock-details { display: flex; flex-direction: column; }
-    .stock-barcode { font-weight: 600; font-family: monospace; }
-    .stock-desc { font-size: 0.8rem; color: var(--text-muted); }
+    .stock-details { display: flex; flex-direction: column; flex: 1; }
+    .stock-barcode { font-weight: 600; font-family: monospace; font-size: 0.9rem; }
+    .stock-desc { font-size: 0.78rem; color: var(--text-muted); }
 
     /* Boyner Link Butonu */
     .btn-boyner {
@@ -87,25 +118,24 @@
       color: #fff;
       padding: 4px 8px;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      margin-top: 5px;
+      margin-top: 4px;
       width: fit-content;
-      transition: background 0.2s;
     }
     .btn-boyner:hover { background: var(--primary); }
 
     /* Modal */
     .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
     .modal.show { display: flex; }
-    .modal-box { background: #fff; border-radius: 10px; padding: 20px; max-width: 340px; width: 90%; text-align: center; }
+    .modal-box { background: #fff; border-radius: 10px; padding: 18px; max-width: 320px; width: 90%; text-align: center; }
 
-    #toast-msg { display: none; background: #28a745; color: #fff; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-weight: 600; }
+    #toast-msg { display: none; background: #28a745; color: #fff; text-align: center; padding: 9px; border-radius: 8px; margin-bottom: 10px; font-weight: 600; font-size: 0.85rem; }
 
-    footer { text-align: center; padding: 16px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border); background: #fff; }
+    footer { text-align: center; padding: 14px; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); background: #fff; }
     footer strong { color: var(--primary); }
 
     @media print {
@@ -120,18 +150,20 @@
   <header>
     <h1>Boyner Emaar P3 Depo Stok & Raf</h1>
     <p>Bulut Tabanlı Canlı Envanter Sistemi</p>
-    <div class="sync-status">
-      <div class="sync-dot"></div>
-      <span id="sync-text">Buluta Bağlı (Canlı)</span>
+    <div class="header-info-bar">
+      <div class="sync-status">
+        <div class="sync-dot"></div>
+        <span id="sync-text">Buluta Bağlı (Canlı)</span>
+      </div>
+      <div id="auth-status-container"></div>
     </div>
-    <div class="auth-status" id="auth-status-text"></div>
   </header>
 
   <div class="container">
     <!-- Sekmeler -->
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="switchTab('search-tab')">🔍 Hızlı Ürün Ara</div>
-      <div class="nav-tab" onclick="switchTab('admin-tab')">⚙️ Raf & Depo Yönetimi</div>
+      <div class="nav-tab" onclick="switchTab('admin-tab')">⚙️ Depo Yönetimi & Sayım</div>
     </div>
 
     <!-- 1. SEKME: PERSONEL ARAMA -->
@@ -139,7 +171,7 @@
       <div class="card">
         <div class="card-title">Ürün / Barkod Lokasyonu Bul</div>
         <input type="text" id="search-input" placeholder="Barkod veya Ürün Adı girin..." onkeyup="performSearch()">
-        <div id="search-results" style="margin-top: 10px;"></div>
+        <div id="search-results" style="margin-top: 8px;"></div>
       </div>
     </div>
 
@@ -162,29 +194,44 @@
         <!-- SAYIM & RAFA ÜRÜN EKLEME -->
         <div class="card" style="border: 2px solid var(--primary);">
           <div class="card-title">
-            <span>📦 Rafa Ürün Ekle / Sayım Modu</span>
-            <span id="active-rack-badge" style="font-size:0.85rem; color:var(--primary); font-weight:bold;"></span>
+            <span>📦 Ürün Sayım Modu</span>
+            <span id="active-rack-badge" style="font-size:0.8rem; color:var(--primary); font-weight:bold;"></span>
           </div>
 
-          <label style="font-size: 0.85rem; font-weight: 600; color: #555;">Sayım Yapılacak Raf:</label>
+          <label style="font-size: 0.8rem; font-weight: 600; color: #555;">Sayım Yapılacak Raf:</label>
           <select id="select-rack" onchange="updateActiveRackDisplay()"></select>
 
-          <!-- Seri Kamera Okuyucu -->
-          <div style="margin-bottom: 12px;">
-            <button id="btn-toggle-cam" class="btn btn-info" onclick="toggleCameraScanner()">📷 Kamera ile Seri Barkod Oku</button>
+          <!-- Seri Kamera Okuyucu (3 Saniye Korumalı) -->
+          <div style="margin-bottom: 10px;">
+            <button id="btn-toggle-cam" class="btn btn-info" onclick="toggleCameraScanner()">📷 Kamera ile Sayım Yap (3sn Aralık)</button>
             <div id="scanner-container">
               <div id="reader" style="width: 100%;"></div>
             </div>
           </div>
 
-          <!-- Manuel Sayım Girişi -->
-          <div style="background: #fdf2f4; padding: 12px; border-radius: 8px;">
-            <label style="font-size: 0.85rem; font-weight: 600; color: #555;">Manuel Barkod & Adet:</label>
-            <div style="display: flex; gap: 8px;">
+          <!-- Manuel Barkod & Adet Girişi -->
+          <div style="background: #fdf2f4; padding: 10px; border-radius: 8px;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: #555;">Manuel Barkod Girişi:</label>
+            <div style="display: flex; gap: 6px;">
               <input type="text" id="stock-barcode" placeholder="Barkod Okutun veya Yazın..." style="margin-bottom: 0; flex: 2;" onkeydown="handleBarcodeEnter(event)">
               <input type="number" id="stock-qty" placeholder="Adet" value="1" min="1" style="margin-bottom: 0; flex: 1;">
             </div>
-            <button class="btn btn-primary" style="margin-top: 10px;" onclick="addStockToRack()">+ Kümülatif Olarak Sayıma Ekle</button>
+            <button class="btn btn-primary" style="margin-top: 8px;" onclick="addStockToRack()">Sayıma Ekle</button>
+          </div>
+        </div>
+
+        <!-- YENİ RAF TANIMLAMA (QR VEYA MANUEL) -->
+        <div class="card">
+          <div class="card-title">Yeni Raf Tanımla</div>
+          
+          <button id="btn-toggle-rack-cam" class="btn btn-secondary btn-sm" style="margin-bottom: 8px; width: 100%;" onclick="toggleRackCameraScanner()">📷 QR ile Raf Oku / Aç</button>
+          <div id="rack-scanner-container">
+            <div id="rack-reader" style="width: 100%;"></div>
+          </div>
+
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="new-rack-name" placeholder="Raf Kodu (Örn: P3-01)" style="margin-bottom: 0;">
+            <button class="btn btn-primary" style="width: 120px;" onclick="addRack()">Rafı Aç</button>
           </div>
         </div>
 
@@ -192,28 +239,18 @@
         <div class="card" style="border-left: 4px solid var(--success);">
           <div class="card-title">📊 Raporlama & SAP Entegrasyonu</div>
           <div class="grid-2">
-            <button class="btn btn-success" onclick="exportAllToExcel()">📗 Tüm Depoyu Excel'e İndir</button>
-            <button class="btn btn-info" onclick="printReport()">🖨️ Depo Özet Raporu (Yazdır/PDF)</button>
+            <button class="btn btn-success" onclick="exportAllToExcel()">📗 Tüm Depo Excel</button>
+            <button class="btn btn-info" onclick="printReport()">🖨️ Yazdır / PDF</button>
           </div>
           
-          <button class="btn btn-secondary btn-sm" onclick="toggleSapImport()" style="margin-top: 4px;">📥 SAP Ürün Detaylarını İçe Aktar (Toplu Yükle)</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleSapImport()" style="margin-top: 4px;">📥 SAP Ürün Detayı Yükle</button>
           
-          <div id="sap-import-box" style="display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">
-              Excel veya SAP'tan kopyaladığınız listeyi yapıştırın:<br>
-              <strong>Format:</strong> <code>Barkod [Boşluk veya TAB] Ürün Adı / Renk / Beden</code>
+          <div id="sap-import-box" style="display: none; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">
+              Excel veya SAP listesini yapıştırın: <code>Barkod [Boşluk veya TAB] Ürün Adı / Beden</code>
             </p>
             <textarea id="sap-input" rows="4" placeholder="8680001234567	Mavi Slim Fit Gömlek M"></textarea>
-            <button class="btn btn-primary btn-sm" onclick="saveSapDetails()">Ürün Detaylarını Sisteme Kaydet</button>
-          </div>
-        </div>
-
-        <!-- YENİ RAF AÇMA -->
-        <div class="card">
-          <div class="card-title">Yeni Raf Tanımla</div>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="new-rack-name" placeholder="Raf Kodu (Örn: P3-01)" style="margin-bottom: 0;">
-            <button class="btn btn-primary" style="width: 140px;" onclick="addRack()">Rafı Aç</button>
+            <button class="btn btn-primary btn-sm" onclick="saveSapDetails()">Ürün Detaylarını Kaydet</button>
           </div>
         </div>
 
@@ -221,12 +258,12 @@
         <div class="card">
           <div class="card-title">
             <span>Mevcut Raflar & Detayları</span>
-            <span id="total-summary" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+            <span id="total-summary" style="font-size: 0.75rem; color: var(--text-muted);"></span>
           </div>
           <div id="rack-list-container"></div>
         </div>
 
-        <button class="btn btn-secondary" onclick="logout()" style="margin-top: 10px;">Çıkış Yap</button>
+        <button class="btn btn-secondary" onclick="logout()" style="margin-top: 8px;">Çıkış Yap</button>
       </div>
 
     </div>
@@ -235,13 +272,12 @@
   <!-- QR MODAL -->
   <div id="qr-modal" class="modal">
     <div class="modal-box">
-      <h3 id="modal-rack-title" style="margin-bottom: 12px; color: var(--primary);"></h3>
-      <div id="modal-qr-img" style="margin-bottom: 16px;"></div>
+      <h3 id="modal-rack-title" style="margin-bottom: 10px; color: var(--primary);"></h3>
+      <div id="modal-qr-img" style="margin-bottom: 14px;"></div>
       <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
     </div>
   </div>
 
-  <!-- YAZDIRMA ALANI -->
   <div id="printable-area" style="display:none; padding: 20px;"></div>
 
   <footer>
@@ -249,7 +285,6 @@
   </footer>
 
   <script>
-    // 1. FIREBASE BAĞLANTISI (CANLI VERİTABANI)
     const firebaseConfig = {
       apiKey: "AIzaSyCi_tpOT55xSgTa2SreZqd4uRjmsk-Hc7E",
       authDomain: "boyner-p3-stok.firebaseapp.com",
@@ -263,7 +298,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Dual Admin Hesapları
     const ADMINS = {
       "cengizhankadiroglu": "182775",
       "melihkerim": "203840"
@@ -272,11 +306,13 @@
     let racks = {};
     let productDetails = {};
     let currentUser = sessionStorage.getItem('p3_auth_user') || null;
+    
     let html5QrScanner = null;
+    let rackScanner = null;
     let lastScannedCode = null;
     let lastScannedTime = 0;
 
-    // BULUTTAN CANLI VERİ DİNLEME
+    // BULUT VERİ DİNLEME
     db.ref('racks').on('value', (snapshot) => {
       racks = snapshot.val() || {};
       populateRackSelect();
@@ -302,24 +338,27 @@
       document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
       document.getElementById(tabId).style.display = 'block';
       event.target.classList.add('active');
-      if (tabId !== 'admin-tab' && html5QrScanner) {
+      if (tabId !== 'admin-tab') {
         stopCamera();
+        stopRackCamera();
       }
     }
 
+    // Mobil Uyumlu Header Durumu
     function checkAuth() {
-      const statusText = document.getElementById('auth-status-text');
+      const authBox = document.getElementById('auth-status-container');
       if (currentUser) {
-        statusText.innerHTML = `👤 <strong>${currentUser}</strong>`;
+        authBox.innerHTML = `<span class="user-pill">👤 ${currentUser}</span>`;
         document.getElementById('login-box').style.display = 'none';
         document.getElementById('admin-panel').style.display = 'block';
         populateRackSelect();
         renderRacks();
       } else {
-        statusText.innerHTML = '';
+        authBox.innerHTML = '';
         document.getElementById('login-box').style.display = 'block';
         document.getElementById('admin-panel').style.display = 'none';
-        if (html5QrScanner) stopCamera();
+        stopCamera();
+        stopRackCamera();
       }
     }
 
@@ -342,21 +381,67 @@
       checkAuth();
     }
 
-    // YENİ RAF AÇMA
-    function addRack() {
-      const name = document.getElementById('new-rack-name').value.trim().toUpperCase();
-      if (!name) return alert("Raf adı boş olamaz!");
-      if (racks[name]) return alert("Bu raf zaten mevcut!");
+    // Raf Oluşturma
+    function createRackInDb(name) {
+      const formatted = name.trim().toUpperCase();
+      if (!formatted) return alert("Raf adı boş olamaz!");
+      if (racks[formatted]) return alert("Bu raf zaten mevcut!");
 
-      db.ref(`racks/${name}`).set({ _created: true }).then(() => {
+      db.ref(`racks/${formatted}`).set({ _created: true }).then(() => {
+        showToast(`✅ ${formatted} rafı açıldı!`);
         document.getElementById('new-rack-name').value = '';
-        showToast(`✅ ${name} rafı buluta kaydedildi!`);
+        document.getElementById('select-rack').value = formatted;
+        updateActiveRackDisplay();
       });
     }
 
-    // RAF SİLME
+    function addRack() {
+      const name = document.getElementById('new-rack-name').value;
+      createRackInDb(name);
+    }
+
+    // QR ile Raf Açma
+    function toggleRackCameraScanner() {
+      const box = document.getElementById('rack-scanner-container');
+      const btn = document.getElementById('btn-toggle-rack-cam');
+
+      if (rackScanner) {
+        stopRackCamera();
+      } else {
+        box.style.display = 'block';
+        btn.innerText = "❌ Raf Kamerasını Kapat";
+        btn.className = "btn btn-secondary btn-sm";
+
+        rackScanner = new Html5Qrcode("rack-reader");
+        rackScanner.start(
+          { facingMode: "environment" },
+          { fps: 15, qrbox: { width: 220, height: 220 } },
+          (decodedText) => {
+            stopRackCamera();
+            createRackInDb(decodedText);
+          },
+          (err) => {}
+        ).catch(err => {
+          alert("Kamera hatası: " + err);
+          stopRackCamera();
+        });
+      }
+    }
+
+    function stopRackCamera() {
+      if (rackScanner) {
+        rackScanner.stop().then(() => {
+          rackScanner.clear();
+          rackScanner = null;
+          document.getElementById('rack-scanner-container').style.display = 'none';
+          document.getElementById('btn-toggle-rack-cam').innerText = "📷 QR ile Raf Oku / Aç";
+          document.getElementById('btn-toggle-rack-cam').className = "btn btn-secondary btn-sm";
+        }).catch(err => console.error(err));
+      }
+    }
+
     function deleteRack(rackName) {
-      if (confirm(`${rackName} rafını ve içindeki tüm stoğu buluttan silmek istediğinize emin misiniz?`)) {
+      if (confirm(`${rackName} rafını ve içindeki tüm stoğu silmek istediğinize emin misiniz?`)) {
         db.ref(`racks/${rackName}`).remove().then(() => {
           showToast(`🗑️ ${rackName} silindi.`);
         });
@@ -391,13 +476,13 @@
       }
     }
 
-    // KÜMÜLATİF STOK EKLEME
+    // Doğrudan Adet Ekleme
     function addStockToRack() {
       const rack = document.getElementById('select-rack').value;
       const barcode = document.getElementById('stock-barcode').value.trim();
       const qty = parseInt(document.getElementById('stock-qty').value) || 1;
 
-      if (!rack) return alert("Lütfen önce sayım yapacağınız rafı seçin!");
+      if (!rack) return alert("Lütfen önce sayım yapılacak rafı seçin!");
       if (!barcode) return alert("Lütfen barkod okutun veya yazın!");
 
       const ref = db.ref(`racks/${rack}/${barcode}`);
@@ -407,11 +492,11 @@
         document.getElementById('stock-barcode').value = '';
         document.getElementById('stock-qty').value = '1';
         document.getElementById('stock-barcode').focus();
-        showToast(`📦 ${barcode} (${rack}) rafına +${qty} eklendi!`);
+        showToast(`📦 ${barcode} (${rack}) eklendi (+${qty})`);
       });
     }
 
-    // KAMERA İLE SERİ SAYIM MODU
+    // Kamera ile Sayım (3 Saniye Çift Okuma Korumalı)
     function toggleCameraScanner() {
       const box = document.getElementById('scanner-container');
       const btn = document.getElementById('btn-toggle-cam');
@@ -432,12 +517,15 @@
           { fps: 15, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             const now = Date.now();
-            if (decodedText === lastScannedCode && (now - lastScannedTime) < 1500) {
+            
+            // Aynı barkod ise 3 saniye (3000 ms) bekletme kontrolü
+            if (decodedText === lastScannedCode && (now - lastScannedTime) < 3000) {
               return;
             }
             lastScannedCode = decodedText;
             lastScannedTime = now;
 
+            // Okunan kod bir raf koduysa rafı değiştir
             if (racks[decodedText]) {
               document.getElementById('select-rack').value = decodedText;
               updateActiveRackDisplay();
@@ -469,7 +557,7 @@
           html5QrScanner.clear();
           html5QrScanner = null;
           document.getElementById('scanner-container').style.display = 'none';
-          document.getElementById('btn-toggle-cam').innerText = "📷 Kamera ile Seri Barkod Oku";
+          document.getElementById('btn-toggle-cam').innerText = "📷 Kamera ile Sayım Yap (3sn Aralık)";
           document.getElementById('btn-toggle-cam').className = "btn btn-info";
         }).catch(err => console.error(err));
       }
@@ -483,7 +571,7 @@
       });
     }
 
-    // RAFLARI LİSTELEME
+    // Rafları Çizme
     function renderRacks() {
       const container = document.getElementById('rack-list-container');
       container.innerHTML = '';
@@ -492,7 +580,7 @@
       const rackKeys = Object.keys(racks).sort();
 
       if (rackKeys.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">Henüz raf eklenmemiş.</p>';
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Henüz raf eklenmemiş.</p>';
       }
 
       rackKeys.forEach(rackName => {
@@ -508,16 +596,17 @@
           totalPieces += qty;
 
           const desc = productDetails[barcode] || 'Detay girilmedi (SAP bekleniyor)';
-          const boynerUrl = `https://www.boyner.com.tr/arama?q=${encodeURIComponent(barcode)}`;
+          // Doğrudan web tarayıcısı arama URL'si
+          const boynerUrl = `https://www.boyner.com.tr/arama?q=${encodeURIComponent(barcode)}&source=web`;
 
           rowsHtml += `
             <div class="stock-row">
               <div class="stock-details">
                 <span class="stock-barcode">${barcode}</span>
                 <span class="stock-desc">${desc}</span>
-                <a href="${boynerUrl}" target="_blank" class="btn-boyner">🌐 Boyner'de Gör</a>
+                <a href="${boynerUrl}" target="_blank" rel="noopener noreferrer" class="btn-boyner">🌐 Boyner'de Gör</a>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:6px;">
                 <strong>${qty} Adet</strong>
                 <button class="btn btn-secondary btn-sm" onclick="adjustItemQty('${rackName}', '${barcode}', -1)">-</button>
                 <button class="btn btn-secondary btn-sm" onclick="adjustItemQty('${rackName}', '${barcode}', 1)">+</button>
@@ -527,7 +616,7 @@
         });
 
         if (!rowsHtml) {
-          rowsHtml = '<p style="color:var(--text-muted); font-size:0.85rem;">Bu rafta henüz ürün yok.</p>';
+          rowsHtml = '<p style="color:var(--text-muted); font-size:0.8rem;">Bu rafta henüz ürün yok.</p>';
         }
 
         const div = document.createElement('div');
@@ -570,7 +659,7 @@
       document.getElementById('qr-modal').classList.remove('show');
     }
 
-    // --- EXCEL & RAPOR ---
+    // Excel & Rapor
     function exportSingleRackToExcel(rackName) {
       const items = racks[rackName] || {};
       const data = [["Raf No", "Barkod", "Ürün Açıklaması / Detay", "Adet"]];
@@ -682,7 +771,7 @@
       area.style.display = 'none';
     }
 
-    // 1. SEKME: PERSONEL ARAMA (BOYNER DİNAMİK LİNK BUTONLU)
+    // Arama Sekmesi
     function performSearch() {
       const q = document.getElementById('search-input').value.trim().toLowerCase();
       const resDiv = document.getElementById('search-results');
@@ -709,19 +798,19 @@
       });
 
       if (found.length === 0) {
-        resDiv.innerHTML = '<p style="color:#dc3545; font-size:0.9rem;">Eşleşen ürün veya lokasyon bulunamadı.</p>';
+        resDiv.innerHTML = '<p style="color:#dc3545; font-size:0.85rem;">Eşleşen ürün veya lokasyon bulunamadı.</p>';
       } else {
         found.forEach(item => {
-          const boynerUrl = `https://www.boyner.com.tr/arama?q=${encodeURIComponent(item.barcode)}`;
+          const boynerUrl = `https://www.boyner.com.tr/arama?q=${encodeURIComponent(item.barcode)}&source=web`;
           resDiv.innerHTML += `
-            <div style="padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <div style="padding:10px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <strong style="color:var(--primary); font-size:1.1rem;">${item.rack}</strong>
-                <div style="font-size:0.85rem; color:#444; margin-top:2px;">${item.desc}</div>
+                <strong style="color:var(--primary); font-size:1.05rem;">${item.rack}</strong>
+                <div style="font-size:0.82rem; color:#444; margin-top:2px;">${item.desc}</div>
                 <div style="font-size:0.75rem; color:#888; margin-top:2px;">Barkod: ${item.barcode}</div>
-                <a href="${boynerUrl}" target="_blank" class="btn-boyner">🌐 Boyner'de Gör</a>
+                <a href="${boynerUrl}" target="_blank" rel="noopener noreferrer" class="btn-boyner">🌐 Boyner'de Gör</a>
               </div>
-              <span class="rack-badge" style="font-size:0.85rem;">${item.qty} Adet</span>
+              <span class="rack-badge" style="font-size:0.82rem;">${item.qty} Adet</span>
             </div>
           `;
         });
