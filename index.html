@@ -81,6 +81,23 @@
     .stock-barcode { font-weight: 600; font-family: monospace; }
     .stock-desc { font-size: 0.8rem; color: var(--text-muted); }
 
+    /* Boyner Link Butonu */
+    .btn-boyner {
+      background: #111;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 5px;
+      width: fit-content;
+      transition: background 0.2s;
+    }
+    .btn-boyner:hover { background: var(--primary); }
+
     /* Modal */
     .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
     .modal.show { display: flex; }
@@ -259,7 +276,7 @@
     let lastScannedCode = null;
     let lastScannedTime = 0;
 
-    // BULUTTAN CANLI VERİ DİNLEME (TELEFON VE PC AYNI ANDA GÜNCELLENİR)
+    // BULUTTAN CANLI VERİ DİNLEME
     db.ref('racks').on('value', (snapshot) => {
       racks = snapshot.val() || {};
       populateRackSelect();
@@ -325,20 +342,19 @@
       checkAuth();
     }
 
-    // YENİ RAF AÇMA (BULUTA YAZAR)
+    // YENİ RAF AÇMA
     function addRack() {
       const name = document.getElementById('new-rack-name').value.trim().toUpperCase();
       if (!name) return alert("Raf adı boş olamaz!");
       if (racks[name]) return alert("Bu raf zaten mevcut!");
 
-      // Boş rafı Firebase'de tutabilmek için başlatıcı alan açıyoruz
       db.ref(`racks/${name}`).set({ _created: true }).then(() => {
         document.getElementById('new-rack-name').value = '';
         showToast(`✅ ${name} rafı buluta kaydedildi!`);
       });
     }
 
-    // RAF SİLME (BULUTTAN SİLER)
+    // RAF SİLME
     function deleteRack(rackName) {
       if (confirm(`${rackName} rafını ve içindeki tüm stoğu buluttan silmek istediğinize emin misiniz?`)) {
         db.ref(`racks/${rackName}`).remove().then(() => {
@@ -375,7 +391,7 @@
       }
     }
 
-    // KÜMÜLATİF STOK EKLEME (BULUTTA ARTIRIR)
+    // KÜMÜLATİF STOK EKLEME
     function addStockToRack() {
       const rack = document.getElementById('select-rack').value;
       const barcode = document.getElementById('stock-barcode').value.trim();
@@ -422,7 +438,6 @@
             lastScannedCode = decodedText;
             lastScannedTime = now;
 
-            // Okunan kod bir raf adıysa aktif rafı otomatik değiştir
             if (racks[decodedText]) {
               document.getElementById('select-rack').value = decodedText;
               updateActiveRackDisplay();
@@ -433,7 +448,6 @@
             const currentRack = document.getElementById('select-rack').value;
             if (!currentRack) return;
 
-            // Buluta kümülatif yaz
             db.ref(`racks/${currentRack}/${decodedText}`).transaction((val) => {
               return (val || 0) + 1;
             });
@@ -494,12 +508,14 @@
           totalPieces += qty;
 
           const desc = productDetails[barcode] || 'Detay girilmedi (SAP bekleniyor)';
+          const boynerUrl = `https://www.boyner.com.tr/arama?q=${encodeURIComponent(barcode)}`;
 
           rowsHtml += `
             <div class="stock-row">
               <div class="stock-details">
                 <span class="stock-barcode">${barcode}</span>
                 <span class="stock-desc">${desc}</span>
+                <a href="${boynerUrl}" target="_blank" class="btn-boyner">🌐 Boyner'de Gör</a>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
                 <strong>${qty} Adet</strong>
@@ -666,7 +682,7 @@
       area.style.display = 'none';
     }
 
-    // ARAMA
+    // 1. SEKME: PERSONEL ARAMA (BOYNER DİNAMİK LİNK BUTONLU)
     function performSearch() {
       const q = document.getElementById('search-input').value.trim().toLowerCase();
       const resDiv = document.getElementById('search-results');
@@ -696,12 +712,14 @@
         resDiv.innerHTML = '<p style="color:#dc3545; font-size:0.9rem;">Eşleşen ürün veya lokasyon bulunamadı.</p>';
       } else {
         found.forEach(item => {
+          const boynerUrl = `https://www.boyner.com.tr/arama?q=${encodeURIComponent(item.barcode)}`;
           resDiv.innerHTML += `
-            <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <div style="padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <strong style="color:var(--primary); font-size:1.05rem;">${item.rack}</strong>
-                <div style="font-size:0.85rem; color:#444;">${item.desc}</div>
-                <div style="font-size:0.75rem; color:#888;">Barkod: ${item.barcode}</div>
+                <strong style="color:var(--primary); font-size:1.1rem;">${item.rack}</strong>
+                <div style="font-size:0.85rem; color:#444; margin-top:2px;">${item.desc}</div>
+                <div style="font-size:0.75rem; color:#888; margin-top:2px;">Barkod: ${item.barcode}</div>
+                <a href="${boynerUrl}" target="_blank" class="btn-boyner">🌐 Boyner'de Gör</a>
               </div>
               <span class="rack-badge" style="font-size:0.85rem;">${item.qty} Adet</span>
             </div>
